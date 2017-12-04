@@ -43,7 +43,7 @@ Main Thread
 */
 DWORD WINAPI dwMain(LPVOID lpArg)
 {
-	byte* TeamViewerBaseAddress = (byte*)GetModuleHandle("TeamViewer.exe");
+	byte* TeamViewerBaseAddress = (byte*)GetModuleHandle(NULL);
 	printf_s("TeamViewerBaseAddress: 0x%X\n", (DWORD)TeamViewerBaseAddress);
 
 	printf_s("Press [NUMPAD 1] if you are the Host/Server\n");
@@ -86,10 +86,11 @@ void hookRenderMenuAsServer(byte* TeamViewerBaseAddress)
 	cTeamViewerPermissions* pTeamViewerPermissions = NULL;
 
 	//Dyamically find address(s) using a code signature/pattern
+	//8B 45 ?? 8B 38 8B 07 8B B0 ?? ?? ?? ?? 8B CE FF 15 ?? ?? ?? ?? 8B CF FF D6 8B F8 8B 0F
 	renderMenuHookAddress = FindPattern(TeamViewerBaseAddress,
-		0xF000000,
-		(byte*)"\x8B\x45\xD4\x8B\x38\x8B\x07\x8B\xB0\x94\x00\x00\x00\x8B\xCE\xFF", //8B 45 D4 8B 38 8B 07 8B B0 94 00 00 00 8B CE FF
-		"xxxxxxxxxxxxxxxx");
+		0xF000000, //size
+		(byte*)"\x8B\x45\x00\x8B\x38\x8B\x07\x8B\xB0\x00\x00\x00\x00\x8B\xCE\xFF\x15\x00\x00\x00\x00\x8B\xCF\xFF\xD6\x8B\xF8\x8B\x0F", 
+		"xx?xxxxxx????xxxx????xxxxxxx");
 
 	if (renderMenuHookAddress == NULL)
 	{
@@ -157,10 +158,11 @@ void hookUnknownFuncAsClient(byte* TeamViewerBaseAddress)
 	byte* unknownOutgoingHookAddress = NULL;
 	
 	//Dyamically find address(s) using a code signature/pattern
+	//8B BB ?? ?? ?? ?? 8B 07 8B 70 ?? 8B CE FF 15 ?? ?? ?? ?? 8B CF FF D6 8B F0 8B 0E 8B 49
 	unknownOutgoingHookAddress = FindPattern(TeamViewerBaseAddress,
-		0xF000000,
-		(byte*)"\x8B\xBB\x6C\x01\x00\x00\x8B\x07\x8B\x70\x1C\x8B\xCE", //8B BB 6C 01 00 00 8B 07 8B 70 1C 8B CE
-		"xxxxxxxxxxxx");
+		0xF000000, //size
+		(byte*)"\x8B\xBB\x00\x00\x00\x00\x8B\x07\x8B\x70\x00\x8B\xCE\xFF\x15\x00\x00\x00\x00\x8B\xCF\xFF\xD6\x8B\xF0\x8B\x0E\x8B\x49",
+		"xx????xxxx?xxxx????xxxxxxxxxx");
 
 	if (unknownOutgoingHookAddress == NULL)
 	{
@@ -199,12 +201,13 @@ void _declspec(naked) hkRenderHelperCodeCave()
 {
 	__asm
 	{
-		//mov eax, [ebp+var_2C]
+		//Original Opcode(s) taken out by the inline JMP (emit for 100% sanity)
+		//MOV EAX, DWORD PTR SS:[EBP-2C]
 		_emit 0x8B 
 		_emit 0x45 
 		_emit 0xD4
 
-		//mov edi, [eax]
+		//MOV EDI, DWORD PTR DS:[EAX]
 		_emit 0x8B 
 		_emit 0x38
 		
@@ -220,14 +223,15 @@ void _declspec(naked) hkRenderHelperCodeCave()
 }
 
 /*
-Hi-jacks EDI register which contains a pointer I was unable to locate statically, 
+	Hi-jacks EDI register which contains a pointer I was unable to locate statically. 
 
-@return JMP to original code
+	@return JMP to original code
 */
 void _declspec(naked) hkUnknownOutgoingCodeCave()
 {
 	__asm 
 	{
+		//Original Opcode(s) taken out by the inline JMP (emit for 100% sanity)
 		//MOV EDI, DWORD PTR DS:[EBX+16C]
 		_emit 0x8B
 		_emit 0xBB
