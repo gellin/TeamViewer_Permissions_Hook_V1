@@ -71,12 +71,12 @@ byte* FindPattern(byte* start, int size, byte* pattern, char* mask)
 byte* CreateJumpTo(byte* orgin, byte* destination, int length)
 {
 	DWORD oldProtect;
-	VirtualProtect(orgin, 6, PAGE_EXECUTE_READWRITE, &oldProtect);
+	VirtualProtect(orgin, 5, PAGE_EXECUTE_READWRITE, &oldProtect);
 
 	*orgin = 0xE9; //JMP
 	*(DWORD*)(orgin + 1) = (DWORD)(destination - orgin - 5);
 
-	VirtualProtect(orgin, 6, oldProtect, &oldProtect);
+	VirtualProtect(orgin, 5, oldProtect, &oldProtect);
 
 	return orgin + length;
 }
